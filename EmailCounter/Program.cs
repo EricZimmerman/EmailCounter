@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using CsvHelper;
 using Fclp;
 using NLog;
@@ -15,18 +14,8 @@ using ServiceStack;
 
 namespace KenConsole
 {
-    class Program
+    internal class Program
     {
-        public class Args
-        {
-            public string FileName { get; set; }
-            public string Directory { get; set; }
-            public string CsvOut { get; set; }
-
-            public bool Debug { get; set;}
-            public bool Trace { get; set;}
-        }
-
         private static Logger _logger;
 
         private static FluentCommandLineParser<Args> _fluentCommandLineParser;
@@ -57,9 +46,8 @@ namespace KenConsole
             LogManager.Configuration = config;
         }
 
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-
             SetupNLog();
 
             _logger = LogManager.GetLogger("MFTECmd");
@@ -82,7 +70,7 @@ namespace KenConsole
                 .WithDescription(
                     "Directory to save CSV formatted results to. Required\r\n");
 
-            
+
             _fluentCommandLineParser.Setup(arg => arg.Debug)
                 .As("debug")
                 .WithDescription("Show debug information during processing").SetDefault(false);
@@ -121,7 +109,8 @@ namespace KenConsole
                 return;
             }
 
-            if (_fluentCommandLineParser.Object.FileName.IsNullOrEmpty() && _fluentCommandLineParser.Object.Directory.IsNullOrEmpty())
+            if (_fluentCommandLineParser.Object.FileName.IsNullOrEmpty() &&
+                _fluentCommandLineParser.Object.Directory.IsNullOrEmpty())
             {
                 _fluentCommandLineParser.HelpOption.ShowHelp(_fluentCommandLineParser.Options);
 
@@ -153,7 +142,7 @@ namespace KenConsole
                 else
                 {
                     _logger.Warn($"Directory '{_fluentCommandLineParser.Object.Directory}' does not exist. Exiting");
-                    Environment.Exit(0);   
+                    Environment.Exit(0);
                 }
             }
 
@@ -172,7 +161,7 @@ namespace KenConsole
             }
 
             LogManager.ReconfigExistingLoggers();
-            
+
             var regexObj = new Regex(@"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", RegexOptions.IgnoreCase);
 
             var outName = $"{DateTimeOffset.UtcNow:yyyyMMddHHmmss}_EmailCounter_Output.csv";
@@ -196,7 +185,7 @@ namespace KenConsole
             _csvWriter.WriteHeader<CsvOut>();
             _csvWriter.NextRecord();
 
-            var emails = new Dictionary<string,int>();
+            var emails = new Dictionary<string, int>();
 
             _logger.Fatal($"Files found: {files.Count:N0}");
             Console.WriteLine();
@@ -216,7 +205,7 @@ namespace KenConsole
                             if (emails.ContainsKey(key) == false)
                             {
                                 _logger.Debug($"Found new email address '{key}'!");
-                                emails.Add(key,0);
+                                emails.Add(key, 0);
                             }
 
                             emails[key] += 1;
@@ -232,7 +221,7 @@ namespace KenConsole
             }
 
             _logger.Debug("Writing results to CSV...");
-            foreach (var email in emails.OrderBy(t=>t.Value))
+            foreach (var email in emails.OrderBy(t => t.Value))
             {
                 var csvo = new CsvOut();
                 csvo.EmailAddress = email.Key;
@@ -241,7 +230,7 @@ namespace KenConsole
                 _csvWriter.WriteRecord(csvo);
                 _csvWriter.NextRecord();
             }
-            
+
             _csvWriter.Flush();
             swCsv.Flush();
             swCsv.Close();
@@ -255,6 +244,16 @@ namespace KenConsole
             Console.WriteLine();
             _logger.Fatal($"Finished. Found {emails.Count:N0} unique emails in {files.Count:N0} file{suffix}");
             Console.WriteLine();
+        }
+
+        public class Args
+        {
+            public string FileName { get; set; }
+            public string Directory { get; set; }
+            public string CsvOut { get; set; }
+
+            public bool Debug { get; set; }
+            public bool Trace { get; set; }
         }
     }
 }
